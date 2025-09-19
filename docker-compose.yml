@@ -1,0 +1,134 @@
+# Agentic Research Framework - Use Case Orchestration
+# Each use case runs in its own container with dedicated ports
+services:
+  # Shared PostgreSQL for cross-use-case research data (optional)
+  shared_research_db:
+    container_name: shared_research_db
+    image: postgres:17-alpine
+    volumes:
+      - shared_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${RESEARCH_POSTGRES_DB:-shared_research_db}
+      POSTGRES_USER: ${RESEARCH_POSTGRES_USER:-research_user}
+      POSTGRES_PASSWORD: ${RESEARCH_POSTGRES_PASSWORD:-research_pass}
+    networks:
+      - research_network
+    ports:
+      - "127.0.0.1:5433:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RESEARCH_POSTGRES_USER:-research_user} -d ${RESEARCH_POSTGRES_DB:-shared_research_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Main orchestration API (coordinates use cases) - Port 8000
+  orchestrator_api:
+    container_name: research_orchestrator
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    env_file: .env
+    volumes:
+      - .:/app
+      - orchestrator_cache:/root/.cache/uv
+    ports:
+      - "127.0.0.1:8000:8000"  # Main orchestrator
+    networks:
+      - research_network
+    restart: unless-stopped
+    depends_on:
+      shared_research_db:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=development
+      - API_PORT=8000
+      - ROLE=orchestrator
+
+  # System Design Use Case - Port 8001
+  system_design:
+    container_name: system_design_use_case
+    build:
+      context: .
+      dockerfile: use_cases/system_design/docker/Dockerfile
+    env_file: .env
+    volumes:
+      - .:/app
+      - system_design_cache:/root/.cache/uv
+    ports:
+      - "127.0.0.1:8001:8001"  # System Design API
+    networks:
+      - research_network
+    restart: unless-stopped
+    environment:
+      - USE_CASE=system_design
+      - API_PORT=8001
+      - ENVIRONMENT=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # System Design Research Environment - Port 8891
+  system_design_research:
+    container_name: system_design_jupyter
+    build:
+      context: .
+      dockerfile: use_cases/system_design/docker/Dockerfile
+    env_file: .env
+    volumes:
+      - .:/app
+      - system_design_cache:/root/.cache/uv
+      - system_design_jupyter:/root/.jupyter
+      - system_design_experiments:/app/research/data/experiments
+    ports:
+      - "127.0.0.1:8891:8891"  # Jupyter for System Design
+    networks:
+      - research_network
+    restart: unless-stopped
+    environment:
+      - USE_CASE=system_design
+      - JUPYTER_PORT=8891
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-system_design_research}
+    profiles: ["research"]
+
+  # Template for future use cases:
+  # 
+  # Content Generation Use Case - Port 8002
+  # content_generation:
+  #   container_name: content_generation_use_case
+  #   build:
+  #     context: .
+  #     dockerfile: use_cases/content_generation/docker/Dockerfile
+  #     target: development
+  #   env_file: .env
+  #   ports:
+  #     - "127.0.0.1:8002:8002"
+  #   networks:
+  #     - research_network
+  #   environment:
+  #     - USE_CASE=content_generation
+  #     - API_PORT=8002
+  #
+  # Code Review Use Case - Port 8003
+  # code_review:
+  #   container_name: code_review_use_case
+  #   ports:
+  #     - "127.0.0.1:8003:8003"
+  #   environment:
+  #     - USE_CASE=code_review
+  #     - API_PORT=8003
+
+networks:
+  research_network:
+    name: research_framework_network
+    driver: bridge
+
+volumes:
+  shared_postgres_data:
+  orchestrator_cache:
+  system_design_cache:
+  system_design_jupyter:
+  system_design_experiments:

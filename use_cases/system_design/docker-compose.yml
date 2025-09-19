@@ -1,0 +1,89 @@
+# System Design Use Case - Independent Docker Compose
+version: '3.8'
+
+services:
+  # System Design API Server
+  system_design_api:
+    container_name: system_design_api
+    build:
+      context: ../../..
+      dockerfile: use_cases/system_design/docker/Dockerfile
+      target: development
+    env_file: 
+      - ../../../.env
+    environment:
+      - USE_CASE=system_design
+      - API_PORT=8001
+      - ENVIRONMENT=development
+    volumes:
+      - ../../..:/app
+      - system_design_cache:/root/.cache/uv
+    ports:
+      - "127.0.0.1:8001:8001"  # System Design API
+    networks:
+      - system_design_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # System Design Research Environment
+  system_design_research:
+    container_name: system_design_research
+    build:
+      context: ../../..
+      dockerfile: use_cases/system_design/docker/Dockerfile
+      target: research
+    env_file:
+      - ../../../.env
+    environment:
+      - USE_CASE=system_design
+      - API_PORT=8001
+      - JUPYTER_PORT=8891
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-system_design_research}
+      - ENVIRONMENT=research
+    volumes:
+      - ../../..:/app
+      - system_design_cache:/root/.cache/uv
+      - system_design_jupyter:/root/.jupyter
+      - system_design_experiments:/app/research/data/experiments
+    ports:
+      - "127.0.0.1:8891:8891"  # Jupyter for System Design
+    networks:
+      - system_design_network
+    restart: unless-stopped
+    profiles: ["research"]
+
+  # Dedicated database for System Design (optional)
+  system_design_db:
+    container_name: system_design_db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: system_design_db
+      POSTGRES_USER: ${RESEARCH_POSTGRES_USER:-system_design_user}
+      POSTGRES_PASSWORD: ${RESEARCH_POSTGRES_PASSWORD:-system_design_pass}
+    volumes:
+      - system_design_db_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5434:5432"  # System Design DB
+    networks:
+      - system_design_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RESEARCH_POSTGRES_USER:-system_design_user} -d system_design_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  system_design_network:
+    name: system_design_network
+    driver: bridge
+
+volumes:
+  system_design_db_data:
+  system_design_cache:
+  system_design_jupyter:
+  system_design_experiments:

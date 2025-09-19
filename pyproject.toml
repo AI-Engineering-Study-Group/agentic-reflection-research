@@ -1,0 +1,108 @@
+[project]
+name = "agentic-research-framework"
+version = "0.1.0"
+description = "Modular framework for researching iterative reflection vs model capability"
+authors = [
+    {name = "Research Team", email = "research@example.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+
+dependencies = [
+    # Core Framework
+    "fastapi>=0.116.2",
+    "uvicorn[standard]>=0.34.2",
+    "pydantic>=2.11.3",
+    "pydantic-settings>=2.9.1",
+    
+    # Google ADK
+    "google-adk>=1.14.1",
+    "google-generativeai>=0.4.1",
+    
+    # Database for Research Data
+    "sqlalchemy>=2.0.40",
+    "sqlmodel>=0.0.24",
+    "alembic>=1.15.2",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.10",
+    
+    # Async utilities
+    "asyncio-throttle>=1.0.0",
+    
+    # Cloud Provider SDKs (for System Design use case)
+    "boto3>=1.35.0",
+    "azure-mgmt-compute>=32.0.0",
+    "azure-identity>=1.19.0",
+    "hcloud>=1.33.0",
+    
+    # Data Processing
+    "pandas>=2.2.2",
+    "numpy>=1.26.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "plotly>=5.17.0",
+    
+    # Research Tools
+    "scikit-learn>=1.5.0",
+    "scipy>=1.11.0",
+    "jupyter>=1.1.1",
+    
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "typer>=0.12.0",
+    "httpx>=0.27.0",
+    "tenacity>=8.0.0",
+    "pyyaml>=6.0.0",
+    "jinja2>=3.1.0",
+    "structlog>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.12.0",
+    "black>=24.0.0",
+    "ruff>=0.7.0",
+    "mypy>=1.8.0",
+    "pre-commit>=4.0.0",
+]
+
+research = [
+    "jupyterlab>=4.0.0",
+    "ipywidgets>=8.1.0",
+    "papermill>=2.6.0",
+    "kaleido>=0.2.1",
+]
+
+[project.scripts]
+research-framework = "main:cli_app"
+experiment-runner = "research.experiment_orchestrator:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["framework", "api", "config", "use_cases", "research"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = ["E", "W", "F", "I", "B", "C4", "ARG", "SIM"]
+ignore = ["E501", "W503", "E203"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+

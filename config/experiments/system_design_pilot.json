@@ -1,0 +1,18 @@
+{
+  "experiment_id": "system_design_pilot_001",
+  "use_case": "system_design",
+  "test_scenarios": [
+    "Design a simple web application system with the following requirements: - Expected users: 10,000 monthly active users - Basic CRUD operations with user authentication - Geographic scope: United States only - Budget constraint: $2,000/month - Compliance: Basic data privacy (no specific regulations)",
+    "Design an e-commerce platform with these requirements: - Expected users: 100,000 monthly active users - Peak traffic: 5x normal during sales events - Features: product catalog, shopping cart, payment processing, order management - Geographic scope: North America and Europe - Budget constraint: $15,000/month - Compliance: PCI DSS for payment processing - Availability requirement: 99.9% uptime"
+  ],
+  "models_to_test": [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro"
+  ],
+  "reflection_configs": [0, 2, 3],
+  "complexity_levels": ["simple", "medium"],
+  "repetitions": 2,
+  "enable_expert_evaluation": false,
+  "output_dir": null
+}
+
