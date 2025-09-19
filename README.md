@@ -25,6 +25,9 @@
 - **[📖 Environment Setup](./env.example)** - Configuration template
 - **[📖 Experiment Config](./config/experiments/)** - Research experiment setup
 
+### 🗺️ **Navigation**
+- **[📖 Complete Codebase Map](./CODEBASE_MAP.md)** - Detailed file-by-file navigation guide
+
 ## 📁 **Codebase Navigation**
 
 ### 🧠 **Core Framework** (`framework/`)
