@@ -1,0 +1,330 @@
+{
+  "info": {
+    "name": "Agentic Research Framework",
+    "description": "Collection for testing the Agentic Reflection Research Framework API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "{{base_url}}",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Chat - Baseline Mode",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Design a modern AI customer service system using the latest Google Cloud services, considering scalability for 50,000 concurrent users, and provide a cost analysis comparing GCP and AWS.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"{{default_model}}\",\n  \"mode\": \"baseline\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat",
+          "host": ["{{base_url}}"],
+          "path": ["chat"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Chat - Reflection Mode",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Design a modern AI customer service system using the latest Google Cloud services, considering scalability for 50,000 concurrent users, and provide a cost analysis comparing GCP and AWS.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"{{default_model}}\",\n  \"mode\": \"reflection\",\n  \"reflection_iterations\": 3\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat",
+          "host": ["{{base_url}}"],
+          "path": ["chat"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Use Case Chat - Baseline",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"A legacy e-commerce platform built on a monolithic architecture is experiencing frequent outages and performance degradation during peak traffic events like Black Friday and Cyber Monday. The current setup consists of a single application server and a separate database server. The team wants to modernize the platform to improve its scalability, reliability, and deployment efficiency. Design a comprehensive modernization strategy with microservices architecture on GCP.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"{{default_model}}\",\n  \"mode\": \"baseline\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/use-cases/chat",
+          "host": ["{{base_url}}"],
+          "path": ["use-cases", "chat"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Use Case Chat - Reflection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"A legacy e-commerce platform built on a monolithic architecture is experiencing frequent outages and performance degradation during peak traffic events like Black Friday and Cyber Monday. The current setup consists of a single application server and a separate database server. The team wants to modernize the platform to improve its scalability, reliability, and deployment efficiency. Design a comprehensive modernization strategy with microservices architecture on GCP.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"{{default_model}}\",\n  \"mode\": \"reflection\",\n  \"reflection_iterations\": 3\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/use-cases/chat",
+          "host": ["{{base_url}}"],
+          "path": ["use-cases", "chat"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Experiment - Multi-Model Comparison",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"experiment_name\": \"E-commerce Modernization Study\",\n  \"scenarios\": [\n    \"Design a microservices architecture for e-commerce platform modernization on GCP\"\n  ],\n  \"models\": [\n    \"{{default_model}}\",\n    \"{{pro_model}}\"\n  ],\n  \"reflection_configs\": [0, 3],\n  \"repetitions\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/experiments",
+          "host": ["{{base_url}}"],
+          "path": ["experiments"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Compare Modes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Design a scalable microservices architecture for a fintech application on Google Cloud Platform, focusing on security, compliance, and high availability.\",\n  \"model\": \"{{default_model}}\",\n  \"use_case\": \"system_design\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/compare",
+          "host": ["{{base_url}}"],
+          "path": ["compare"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Experiments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/experiments",
+          "host": ["{{base_url}}"],
+          "path": ["experiments"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Experiment Results",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/experiments/{{experiment_id}}/results",
+          "host": ["{{base_url}}"],
+          "path": ["experiments", "{{experiment_id}}", "results"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Different Models",
+      "item": [
+        {
+          "name": "Flash Lite Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a modern AI customer service system using the latest Google Cloud services, considering scalability for 50,000 concurrent users, and provide a cost analysis comparing GCP and AWS.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-flash-lite\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Flash Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a modern AI customer service system using the latest Google Cloud services, considering scalability for 50,000 concurrent users, and provide a cost analysis comparing GCP and AWS.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-flash\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Pro Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a modern AI customer service system using the latest Google Cloud services, considering scalability for 50,000 concurrent users, and provide a cost analysis comparing GCP and AWS.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-pro\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Research Framework Tests",
+      "item": [
+        {
+          "name": "Baseline vs Reflection - Flash Lite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a comprehensive data analytics platform on Google Cloud Platform that can process real-time streaming data from IoT devices, implement machine learning pipelines for predictive analytics, and provide interactive dashboards for business intelligence.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-flash-lite\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Baseline vs Reflection - Flash",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a comprehensive data analytics platform on Google Cloud Platform that can process real-time streaming data from IoT devices, implement machine learning pipelines for predictive analytics, and provide interactive dashboards for business intelligence.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-flash\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Baseline vs Reflection - Pro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Design a comprehensive data analytics platform on Google Cloud Platform that can process real-time streaming data from IoT devices, implement machine learning pipelines for predictive analytics, and provide interactive dashboards for business intelligence.\",\n  \"use_case\": \"system_design\",\n  \"model\": \"gemini-2.5-pro\",\n  \"mode\": \"baseline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/use-cases/chat",
+              "host": ["{{base_url}}"],
+              "path": ["use-cases", "chat"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
