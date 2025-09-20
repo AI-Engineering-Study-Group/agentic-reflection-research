@@ -8,7 +8,7 @@ echo "API Port: ${API_PORT:-8001}"
 # Wait for database if needed
 if [ ! -z "$DATABASE_URL" ]; then
     echo "Waiting for database..."
-    while ! nc -z research_db 5432; do
+    while ! nc -z shared_research_db 5432; do
         sleep 0.1
     done
     echo "Database is ready!"

@@ -1,8 +1,9 @@
 from typing import Dict, Any
 import structlog
 from framework.base_orchestrator import BaseUseCaseOrchestrator
-from .agents import SystemDesignProducer, SystemDesignCritic
+from .agents import SystemDesignProducer, SystemDesignCritic, SystemDesignResearcher
 from .config import USE_CASE_CONFIG
+from config.settings import settings
 
 logger = structlog.get_logger(__name__)
 
@@ -23,18 +24,20 @@ class SystemDesignOrchestrator(BaseUseCaseOrchestrator):
     
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize system design specific agents."""
-        # Start with default model, will be updated during experiments
-        default_model = "gemini-2.5-flash-lite"
+        # Start with default model from settings, will be updated during experiments
+        default_model = settings.default_model
         
         agents = {
             "producer": SystemDesignProducer(default_model),
-            "critic": SystemDesignCritic(default_model)
+            "critic": SystemDesignCritic(default_model),
+            "researcher": SystemDesignResearcher(default_model)
         }
         
         logger.info(
             "System design agents initialized",
             producer_model=agents["producer"].model,
-            critic_model=agents["critic"].model
+            critic_model=agents["critic"].model,
+            researcher_model=agents["researcher"].model
         )
         
         return agents

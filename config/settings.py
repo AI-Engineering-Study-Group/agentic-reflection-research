@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Global framework configuration"""
     
     # Google ADK
-    google_api_key: str
+    google_api_key: Optional[str] = None
     google_project_id: Optional[str] = None
     default_model: str = "gemini-2.5-flash-lite"
     pro_model: str = "gemini-2.5-pro"

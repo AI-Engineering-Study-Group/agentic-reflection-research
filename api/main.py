@@ -63,7 +63,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User's message or system design question")
     mode: str = Field(default="chat", description="Mode: 'chat', 'baseline', or 'reflection'")
-    model: str = Field(default="gemini-2.5-flash-lite", description="Model to use")
+    model: str = Field(default=settings.default_model, description="Model to use")
     reflection_iterations: int = Field(default=3, description="Number of reflection iterations")
     use_case: str = Field(default="system_design", description="Use case to apply")
 
@@ -80,13 +80,13 @@ class ChatResponse(BaseModel):
 class ExperimentRequest(BaseModel):
     experiment_name: str = Field(..., description="Name for the experiment")
     scenarios: List[str] = Field(..., description="Test scenarios to run")
-    models: List[str] = Field(default=["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"], description="Models to test")
+    models: List[str] = Field(default=settings.available_models, description="Models to test")
     reflection_configs: List[int] = Field(default=[0, 2, 3], description="Reflection iteration counts")
     repetitions: int = Field(default=1, description="Number of repetitions per configuration")
 
 class ComparisonRequest(BaseModel):
     message: str = Field(..., description="Message to compare across modes")
-    model: str = Field(default="gemini-2.5-flash-lite", description="Model to use for comparison")
+    model: str = Field(default=settings.default_model, description="Model to use for comparison")
     use_case: str = Field(default="system_design", description="Use case for comparison")
 
 # Global state for sessions (in production, use proper session management)

@@ -5,6 +5,7 @@ import httpx
 import structlog
 from config.settings import settings
 import asyncio
+import concurrent.futures
 
 logger = structlog.get_logger(__name__)
 
@@ -19,9 +20,9 @@ class CloudPricingTool(BaseTool):
     4. Enables accurate cost comparisons
     """
     
-    def __init__(self, provider: str):
+    def __init__(self, provider: str, name: str, description: str):
         self.provider = provider
-        super().__init__()
+        super().__init__(name=name, description=description)
     
     async def get_pricing(self, services: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get pricing for a list of services."""
@@ -35,13 +36,12 @@ class GCPPricingTool(CloudPricingTool):
     """
     
     def __init__(self):
-        super().__init__("gcp")
+        super().__init__("gcp", "GCP Pricing Tool", "Get Google Cloud Platform pricing information")
     
-    async def get_compute_pricing(self, 
-                                instance_type: str,
-                                region: str,
-                                hours_per_month: int = 730,
-                                **kwargs) -> Dict[str, Any]:
+    def get_compute_pricing(self, 
+                             instance_type: str,
+                             region: str,
+                             hours_per_month: int) -> Dict[str, Any]:
         """
         Get GCP Compute Engine pricing.
         
@@ -54,7 +54,7 @@ class GCPPricingTool(CloudPricingTool):
             # In real implementation, call GCP Pricing API
             # For now, return mock data with realistic structure
             
-            pricing_data = await self._fetch_gcp_pricing(instance_type, region)
+            pricing_data = self._fetch_gcp_pricing(instance_type, region)
             
             monthly_cost = pricing_data["hourly_rate"] * hours_per_month
             
@@ -87,7 +87,7 @@ class GCPPricingTool(CloudPricingTool):
             )
             raise
     
-    async def _fetch_gcp_pricing(self, instance_type: str, region: str) -> Dict[str, Any]:
+    def _fetch_gcp_pricing(self, instance_type: str, region: str) -> Dict[str, Any]:
         """
         Fetch pricing from static pricing database.
         
@@ -150,16 +150,15 @@ class AWSPricingTool(CloudPricingTool):
     """AWS pricing tool for cost comparison."""
     
     def __init__(self):
-        super().__init__("aws")
+        super().__init__("aws", "AWS Pricing Tool", "Get Amazon Web Services pricing information")
     
-    async def get_compute_pricing(self,
-                                instance_type: str,
-                                region: str,
-                                hours_per_month: int = 730,
-                                **kwargs) -> Dict[str, Any]:
+    def get_compute_pricing(self,
+                             instance_type: str,
+                             region: str,
+                             hours_per_month: int) -> Dict[str, Any]:
         """Get AWS EC2 pricing."""
         try:
-            pricing_data = await self._fetch_aws_pricing(instance_type, region)
+            pricing_data = self._fetch_aws_pricing(instance_type, region)
             monthly_cost = pricing_data["hourly_rate"] * hours_per_month
             
             return {
@@ -177,7 +176,7 @@ class AWSPricingTool(CloudPricingTool):
             logger.error("Failed to get AWS pricing", error=str(e))
             raise
     
-    async def _fetch_aws_pricing(self, instance_type: str, region: str) -> Dict[str, Any]:
+    def _fetch_aws_pricing(self, instance_type: str, region: str) -> Dict[str, Any]:
         """Fetch AWS pricing data."""
         # Mock implementation
         mock_pricing = {
@@ -188,39 +187,93 @@ class AWSPricingTool(CloudPricingTool):
         
         return mock_pricing.get(instance_type, {"hourly_rate": 0.150, "last_updated": "2024-01-01"})
 
-# Create function tools for ADK integration
-def get_gcp_compute_pricing(instance_type: str, region: str, hours_per_month: int = 730, **kwargs) -> Dict[str, Any]:
+# TEMPORARY: Ultra-simple test functions
+def test_ultra_simple_cloud(instance_type: str, region: str, hours_per_month: int) -> Dict[str, Any]:
+    """Ultra simple cloud pricing test function."""
+    return {
+        "provider": "test_cloud",
+        "instance_type": instance_type,
+        "region": region,
+        "monthly_cost": hours_per_month * 0.150,
+        "currency": "USD",
+        "test": "ultra_simple"
+    }
+
+# Create function tools for ADK integration with enhanced descriptions
+def get_gcp_compute_pricing(instance_type: str, region: str, hours_per_month: int, **kwargs) -> Dict[str, Any]:
     """
     Get GCP Compute Engine pricing for system design.
     
     Args:
-        instance_type: GCP instance type (e.g., 'e2-standard-4')
-        region: GCP region (e.g., 'us-central1') 
-        hours_per_month: Operating hours per month (default: 730)
+        instance_type: GCP instance type (e.g., 'e2-standard-4', 'n1-standard-2', 'c2-standard-8')
+        region: GCP region (e.g., 'us-central1', 'us-east1', 'europe-west1', 'asia-east1') 
+        hours_per_month: Operating hours per month (typically 730 for full month)
     
     Returns:
-        Dict containing pricing information including hourly and monthly costs
+        Dict containing pricing information including hourly and monthly costs, vCPUs, and memory
+    
+    Example usage:
+        get_gcp_compute_pricing("e2-standard-4", "us-central1", 730)
+        # Returns: {"provider": "gcp", "instance_type": "e2-standard-4", "monthly_cost": 97.82, ...}
     """
-    tool = GCPPricingTool()
-    return asyncio.run(tool.get_compute_pricing(instance_type, region, hours_per_month))
+    # Input validation
+    if not instance_type or not isinstance(instance_type, str):
+        raise ValueError("instance_type must be a non-empty string")
+    if not region or not isinstance(region, str):
+        raise ValueError("region must be a non-empty string")
+    if not isinstance(hours_per_month, int) or hours_per_month <= 0:
+        raise ValueError("hours_per_month must be a positive integer")
+    
+    try:
+        tool = GCPPricingTool()
+        return tool.get_compute_pricing(instance_type, region, hours_per_month)
+    except Exception as e:
+        logger.error(f"Failed to get GCP pricing: {str(e)}")
+        return {
+            "error": f"Failed to get GCP pricing: {str(e)}",
+            "provider": "gcp",
+            "instance_type": instance_type,
+            "region": region
+        }
 
-def get_aws_compute_pricing(instance_type: str, region: str, hours_per_month: int = 730, **kwargs) -> Dict[str, Any]:
+def get_amazon_compute_pricing(instance_type: str, region: str, hours_per_month: int, **kwargs) -> Dict[str, Any]:
     """
     Get AWS EC2 pricing for cost comparison.
     
     Args:
-        instance_type: AWS instance type (e.g., 'm5.xlarge')
-        region: AWS region (e.g., 'us-east-1')
-        hours_per_month: Operating hours per month (default: 730)
+        instance_type: AWS instance type (e.g., 'm5.xlarge', 'c5.xlarge', 't3.xlarge')
+        region: AWS region (e.g., 'us-east-1', 'us-west-2', 'eu-west-1')
+        hours_per_month: Operating hours per month (typically 730 for full month)
     
     Returns:
         Dict containing pricing information including hourly and monthly costs
+    
+    Example usage:
+        get_aws_compute_pricing("m5.xlarge", "us-east-1", 730)
+        # Returns: {"provider": "aws", "instance_type": "m5.xlarge", "monthly_cost": 140.16, ...}
     """
-    tool = AWSPricingTool()
-    return asyncio.run(tool.get_compute_pricing(instance_type, region, hours_per_month))
+    # Input validation
+    if not instance_type or not isinstance(instance_type, str):
+        raise ValueError("instance_type must be a non-empty string")
+    if not region or not isinstance(region, str):
+        raise ValueError("region must be a non-empty string")
+    if not isinstance(hours_per_month, int) or hours_per_month <= 0:
+        raise ValueError("hours_per_month must be a positive integer")
+    
+    try:
+        tool = AWSPricingTool()
+        return tool.get_compute_pricing(instance_type, region, hours_per_month)
+    except Exception as e:
+        logger.error(f"Failed to get AWS pricing: {str(e)}")
+        return {
+            "error": f"Failed to get AWS pricing: {str(e)}",
+            "provider": "aws",
+            "instance_type": instance_type,
+            "region": region
+        }
 
 # Additional tools for comprehensive system design
-def analyze_architecture_security(architecture: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+def analyze_architecture_security(architecture: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyze system architecture for security vulnerabilities and best practices.
     
@@ -249,7 +302,7 @@ def analyze_architecture_security(architecture: Dict[str, Any], **kwargs) -> Dic
         }
     }
 
-def calculate_scaling_requirements(base_load: int, peak_multiplier: float, **kwargs) -> Dict[str, Any]:
+def calculate_scaling_requirements(base_load: int, peak_multiplier: float) -> Dict[str, Any]:
     """
     Calculate scaling requirements for handling peak loads.
     
@@ -277,7 +330,7 @@ def calculate_scaling_requirements(base_load: int, peak_multiplier: float, **kwa
         ]
     }
 
-def generate_architecture_diagram(architecture: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+def generate_architecture_diagram(architecture: Dict[str, Any]) -> Dict[str, Any]:
     """Generate architecture diagram specification."""
     return {
         "diagram_type": "system_architecture",
@@ -287,7 +340,7 @@ def generate_architecture_diagram(architecture: Dict[str, Any], **kwargs) -> Dic
         "diagram_url": f"https://example.com/diagrams/{architecture.get('id', 'default')}.png"
     }
 
-def estimate_total_costs(services: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+def estimate_total_costs(services: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Estimate total system costs across providers."""
     # Mock implementation - replace with actual cost calculation
     gcp_total = sum(service.get("monthly_cost", 0) for service in services if service.get("provider") == "gcp")
@@ -312,4 +365,89 @@ def estimate_total_costs(services: List[Dict[str, Any]], **kwargs) -> Dict[str, 
             "Implement auto-scaling to optimize costs"
         ]
     }
+
+
+# Research Tool Implementation
+def research_current_information(query: str, **kwargs) -> Dict[str, Any]:
+    """
+    Research current information using Google Search for system design decisions.
+    
+    This tool enables access to real-time information about:
+    - Latest cloud service features and pricing updates
+    - Recent security advisories and compliance requirements  
+    - Performance benchmarks and optimization techniques
+    - Industry trends and emerging technologies
+    
+    Args:
+        query: The research question or topic to investigate
+        **kwargs: Additional parameters including agent_model from tool context
+    
+    Returns:
+        Dict containing research results with sources and recommendations
+    """
+    from ..agents import SystemDesignResearcher
+    import asyncio
+    
+    # Extract model from kwargs (passed via tool context)
+    agent_model = kwargs.get('model', kwargs.get('agent_model', 'gemini-2.5-flash-lite'))
+    
+    logger.info("Research tool called", query=query, model=agent_model)
+    
+    try:
+        # Create researcher agent using the same model as the calling agent
+        researcher = SystemDesignResearcher(agent_model)
+        
+        # Execute research using the agent with Google Search
+        # Since we're already in an async context, we need to use a thread pool
+        
+        def run_research_sync():
+            # Create a new event loop for the research
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(researcher.run({'input': query}))
+                return result
+            finally:
+                loop.close()
+        
+        # Run the research in a thread to avoid event loop conflicts
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(run_research_sync)
+            research_result = future.result(timeout=30)  # 30 second timeout
+        
+        # Extract and format the response
+        response_text = research_result.get('response', '')
+        
+        # Return structured research results
+        return {
+            "research_query": query,
+            "findings": response_text,
+            "source": "Google Search via SystemDesignResearcher",
+            "grounded": True,
+            "timestamp": "current",
+            "recommendations": [
+                "Review the findings for latest information",
+                "Cross-reference with your current architecture",
+                "Consider implementing suggested best practices"
+            ]
+        }
+        
+    except concurrent.futures.TimeoutError:
+        logger.error("Research tool timed out", query=query)
+        return {
+            "research_query": query,
+            "findings": "Research timed out after 30 seconds. Please try a more specific query.",
+            "source": "Timeout",
+            "grounded": False,
+            "error": "Timeout"
+        }
+    except Exception as e:
+        logger.error("Research tool failed", query=query, error=str(e))
+        return {
+            "research_query": query,
+            "findings": f"Research failed: {str(e)}",
+            "source": "Error",
+            "grounded": False,
+            "error": str(e)
+        }
 

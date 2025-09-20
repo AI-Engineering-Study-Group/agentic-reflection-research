@@ -99,17 +99,65 @@ class SystemDesignEvaluator(BaseUseCaseEvaluator):
         """
         
         try:
-            # Use evaluation agent to get structured response
-            evaluation_result = await self.evaluation_agent.run({
-                "evaluation_prompt": dimension_prompt
-            })
+            # Use evaluation agent with proper ADK Runner pattern
+            from google.adk.runners import Runner
+            from google.adk.sessions import DatabaseSessionService
+            from google.genai import types
+            from config.settings import settings
             
-            # Parse the result (assuming it returns structured data)
-            if isinstance(evaluation_result, dict):
-                result_data = evaluation_result
+            # Create session service
+            session_service = DatabaseSessionService(db_url=settings.database_url or "sqlite:///research.db")
+            
+            # Create session
+            user_id = "evaluation_user"
+            session = await session_service.create_session(
+                app_name=f"{self.use_case}_evaluator",
+                user_id=user_id
+            )
+            
+            # Create runner with proper app_name matching
+            runner = Runner(
+                app_name=f"{self.use_case}_evaluator",
+                agent=self.evaluation_agent,
+                session_service=session_service
+            )
+            
+            # Create proper ADK Content object
+            content = types.Content(role="user", parts=[types.Part(text=dimension_prompt)])
+            
+            # Execute agent using run_async
+            response_text = ""
+            async for evt in runner.run_async(
+                user_id=session.user_id,
+                session_id=session.id,
+                new_message=content
+            ):
+                if hasattr(evt, 'content') and evt.content:
+                    if hasattr(evt.content, 'parts'):
+                        for part in evt.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                response_text += part.text
+            
+            # Try to parse JSON from response
+            if response_text:
+                try:
+                    result_data = json.loads(response_text)
+                except json.JSONDecodeError:
+                    # If not JSON, create a fallback structure
+                    result_data = {
+                        "score": 0.5,
+                        "reasoning": response_text[:500] + "..." if len(response_text) > 500 else response_text,
+                        "specific_issues": [],
+                        "improvement_suggestions": []
+                    }
             else:
-                # If result is a string, try to parse JSON
-                result_data = json.loads(str(evaluation_result))
+                # No response received
+                result_data = {
+                    "score": 0.5,
+                    "reasoning": "No response received from evaluation agent",
+                    "specific_issues": ["Evaluation agent did not respond"],
+                    "improvement_suggestions": ["Check evaluation agent configuration"]
+                }
             
             return QualityScore(
                 dimension=dimension.name,

@@ -8,7 +8,7 @@ echo "Use Case: ${USE_CASE:-system_design}"
 # Wait for shared database to be ready (if using external DB)
 if [ ! -z "$DATABASE_URL" ]; then
     echo "Waiting for database..."
-    while ! nc -z research_db 5432; do
+    while ! nc -z shared_research_db 5432; do
         sleep 0.1
     done
     echo "Database is ready!"

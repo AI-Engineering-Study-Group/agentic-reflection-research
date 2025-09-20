@@ -64,7 +64,7 @@ app.add_middleware(
 class UseCaseChatRequest(BaseModel):
     message: str = Field(..., description="User's message")
     mode: str = Field(default="chat", description="Mode: 'chat', 'baseline', or 'reflection'")
-    model: str = Field(default="gemini-2.5-flash-lite", description="Model to use")
+    model: str = Field(default=settings.default_model, description="Model to use")
     reflection_iterations: int = Field(default=3, description="Number of reflection iterations")
 
 class UseCaseChatResponse(BaseModel):
@@ -269,11 +269,17 @@ async def use_case_chat(request: UseCaseChatRequest):
         else:
             raise HTTPException(status_code=400, detail=f"Invalid mode: {request.mode}")
         
-        # Extract response text
-        if isinstance(result, dict):
-            response_text = result.get("response", str(result))
+        # Extract response text - ensure it's never None
+        if result is None:
+            response_text = "No response generated from the agent"
+        elif isinstance(result, dict):
+            response_text = result.get("response") or str(result)
         else:
             response_text = str(result)
+        
+        # Ensure response_text is never None or empty
+        if not response_text or response_text.strip() == "":
+            response_text = "No response generated from the agent"
         
         processing_time = (datetime.now() - start_time).total_seconds()
         

@@ -22,7 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml README.md uv.lock* ./
 
 # Development stage
 FROM base as development

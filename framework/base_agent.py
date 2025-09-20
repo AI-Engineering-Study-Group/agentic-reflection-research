@@ -77,13 +77,21 @@ class BaseUseCaseAgent(ABC):
         4. Error handling and logging
         """
         try:
+            # Special handling for researcher role that needs Google Search
+            tools_to_use = self.tools
+            if self.role == "researcher":
+                from google.adk.tools import google_search
+                tools_to_use = [google_search]  # Use Google Search for researcher
+                logger.info("Using Google Search tool for researcher agent")
+            
             agent = LlmAgent(
                 model=self.model,
                 name=self.name,
                 description=f"{self.use_case} {self.role} agent",
                 instruction=self._get_instructions(),
-                tools=self.tools,
-                before_tool_callback=self._before_tool_callback
+                tools=tools_to_use,
+                before_tool_callback=self._before_tool_callback,
+                after_tool_callback=self._after_tool_callback
             )
             
             logger.info(
@@ -146,6 +154,54 @@ class BaseUseCaseAgent(ABC):
             experiment_id=experiment_id,
             iteration=iteration_count
         )
+    
+    def _after_tool_callback(self, *args, **kwargs) -> None:
+        """
+        Process tool execution results and handle any post-execution logic.
+        
+        This callback allows us to:
+        1. Log tool execution results
+        2. Transform or validate tool outputs  
+        3. Track tool performance and costs
+        4. Handle tool execution errors
+        """
+        # Extract parameters flexibly
+        tool = args[0] if len(args) > 0 else kwargs.get('tool')
+        result = args[1] if len(args) > 1 else kwargs.get('result')
+        tool_context = args[2] if len(args) > 2 else kwargs.get('tool_context')
+        
+        logger.info(
+            "Tool execution completed",
+            tool_name=getattr(tool, 'name', 'unknown') if tool else 'unknown',
+            agent_name=self.name,
+            result_type=type(result).__name__ if result is not None else 'None',
+            success=result is not None,
+            args_received=len(args),
+            kwargs_received=list(kwargs.keys())
+        )
+        
+        # Log the actual result for debugging (truncate if too long)
+        if result is not None:
+            result_str = str(result)
+            if len(result_str) > 200:
+                result_str = result_str[:200] + "..."
+            
+            logger.debug(
+                "Tool execution result",
+                tool_name=getattr(tool, 'name', 'unknown') if tool else 'unknown',
+                result=result_str
+            )
+        
+        # Track tool performance for research
+        if tool_context and hasattr(tool_context, 'state'):
+            tool_executions = tool_context.state.get('tool_executions', [])
+            tool_executions.append({
+                'tool_name': getattr(tool, 'name', 'unknown') if tool else 'unknown',
+                'agent_name': self.name,
+                'success': result is not None,
+                'result_type': type(result).__name__ if result is not None else 'None'
+            })
+            tool_context.state['tool_executions'] = tool_executions
     
     async def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -231,7 +287,7 @@ class BaseUseCaseAgent(ABC):
     def _extract_text_from_events(self, events: List[Any]) -> Optional[str]:
         """
         Extract text content from ADK events, handling function calls properly.
-        Based on working patterns from expert guidance.
+        Improved to handle function call responses and combine multiple text parts.
         """
         def extract_text_from_event(evt) -> Optional[str]:
             content = getattr(evt, "content", None)
@@ -242,20 +298,47 @@ class BaseUseCaseAgent(ABC):
             if not parts:
                 return None
 
-            first_part = parts[0]
-            if getattr(first_part, "function_call", None) is not None:
-                return None  # Skip function calls
-
-            return getattr(first_part, "text", None)
+            # Extract text from all parts, not just the first
+            text_parts = []
+            for part in parts:
+                # Skip function calls but include text parts
+                if getattr(part, "function_call", None) is None:
+                    text = getattr(part, "text", None)
+                    if text:
+                        text_parts.append(text)
+            
+            return " ".join(text_parts) if text_parts else None
         
-        # Extract final response from events
-        final_response = None
+        # Extract and combine all text responses from events
+        text_responses = []
         for evt in events:
             text = extract_text_from_event(evt)
             if text:
-                final_response = text
+                text_responses.append(text)
         
-        return final_response
+        # If we have no text responses but we have function calls, 
+        # create a summary response
+        if not text_responses:
+            function_calls = []
+            for evt in events:
+                content = getattr(evt, "content", None)
+                if content:
+                    parts = getattr(content, "parts", None)
+                    if parts:
+                        for part in parts:
+                            func_call = getattr(part, "function_call", None)
+                            if func_call:
+                                func_name = getattr(func_call, "name", "unknown_function")
+                                function_calls.append(func_name)
+            
+            if function_calls:
+                return f"Successfully executed tools: {', '.join(function_calls)}. The function calls completed successfully."
+        
+        # Return combined text response or a default message
+        if text_responses:
+            return " ".join(text_responses)
+        else:
+            return "No text response generated from the agent"
     
     def update_model(self, new_model: str) -> None:
         """
